@@ -1,6 +1,8 @@
 package SortedSet
 
-import "math/rand"
+import (
+	"math/rand"
+)
 
 const (
 	maxLevel = 32
@@ -133,4 +135,45 @@ func (skiplist *skiplist) insert(member string, score float64) *node {
 	}
 	skiplist.length++
 	return node
+}
+
+func (skiplist *skiplist) remove(memeber string, score float64) bool {
+	update := make([]*node, maxLevel)
+	node := skiplist.header
+
+	for i := int16(0); i < skiplist.level; i++ {
+		for node.level[i].forward != nil && (node.level[i].forward.Score < score ||
+			(node.level[i].forward.Score == score && node.level[i].forward.Member < memeber)) {
+			node = node.level[i].forward
+		}
+		update[i] = node
+	}
+
+	node = update[0].level[0].forward
+	if node != nil && node.Score == score && node.Member == memeber {
+		skiplist.removeNode(node, update)
+		// free x
+		return true
+	}
+	return false
+}
+
+func (skiplist *skiplist)removeNode(node *node, update []*node) {
+	for i := int16(0); i < skiplist.level; i++ {
+		if update[i].level[i].forward == node {
+			update[i].level[i].span += node.level[i].span - 1
+			update[i].level[i].forward = node.level[i].forward
+		} else {
+			update[i].level[i].span--
+		}
+	}
+	if node.level[0].forward != nil {
+		node.level[0].forward.backward = update[0]
+	} else {
+		skiplist.tail = node.backward
+	}
+	for skiplist.level > 1 && skiplist.header.level[skiplist.level - 1].forward == nil {
+		skiplist.level--
+	}
+	skiplist.length--
 }
