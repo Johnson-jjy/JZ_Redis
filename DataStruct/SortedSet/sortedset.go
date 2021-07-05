@@ -112,3 +112,92 @@ func (sortedSet *SortedSet) Foreach(start int64, stop int64, desc bool, consumer
 		}
 	}
 }
+
+// Range returns members which rank within [start, stop), sort by ascending order, rank starts from 0
+func (sortedSet *SortedSet) Range(start int64, stop int64, desc bool) []*Element {
+	sliceSize := int(stop - start)
+	slice := make([]*Element, sliceSize)
+	i := 0
+	sortedSet.Foreach(start, stop, desc, func(element *Element) bool {
+		slice[i] = element
+		i++
+		return true
+	})
+	return slice
+}
+
+// Count returns the number of members which score within the given border
+func (sortedSet *SortedSet) Count(min *ScoreBorder, max *ScoreBorder) int64 {
+	var i int64 = 0
+	// ascending order
+	sortedSet.Foreach(0, sortedSet.Len(), false, func(element *Element) bool {
+		gtMin := min.less(element.Score) // greater than min
+		if !gtMin {
+			// has not into range, continue foreach
+			return true
+		}
+		ltMax := max.greater(element.Score) // less than max
+		if !ltMax {
+			// break through score border, break foreach
+			return false
+		}
+		// gtMin && ltMax
+		i++
+		return true
+	})
+	return i
+}
+
+// ForEachScore visits members which score within the given border
+func (sortedSet *SortedSet) ForEachByScore(min *ScoreBorder, max *ScoreBorder, offset int64, limit int64, desc bool, consumer func(element *Element) bool) {
+	// find frist node
+	var node *node
+	if desc {
+		node = sortedSet.skiplist.getLastInScoreRange(min, max)
+	} else {
+		node = sortedSet.skiplist.getFirstInScoreRange(min, max)
+	}
+
+	for node != nil && offset > 0 {
+		if desc {
+			node = node.backward
+		} else {
+			node = node.level[0].forward
+		}
+		offset--
+	}
+
+	// A negative limit return all elements from the offset
+	for i := 0; (i < int(limit) || limit < 0) && node != nil; i++ {
+		if !consumer(&node.Element) {
+			break
+		}
+		if desc {
+			node = node.backward
+		} else {
+			node = node.level[0].forward
+		}
+		if node == nil {
+			break
+		}
+		gtMin := min.less(node.Score) // greater than min
+		ltMax := max.greater(node.Score)
+		if !gtMin || !ltMax {
+			break // break through score border
+		}
+	}
+}
+
+// RangeByScore returns members which score within the given border
+// param limit: < 0 means no limit
+func (sortedSet *SortedSet) RangeByScore(min *ScoreBorder, max *ScoreBorder, offset int64, limit int64, desc bool) []*Element {
+	if limit == 0 || offset < 0 {
+		return make([]*Element, 0)
+	}
+	slice := make([]*Element, 0)
+	sortedSet.ForEachByScore(min, max, offset, limit, desc, func(element *Element) bool {
+		slice = append(slice, element)
+		return true
+	})
+	return slice
+}
