@@ -2,12 +2,15 @@ package parser
 
 import (
 	"JZ_Redis/interface/redis"
+	"JZ_Redis/lib/logger"
+	"bufio"
 	"bytes"
 	"errors"
 	"io"
+	"runtime/debug"
 )
 
-// Payload stores redus.Reply or error
+// Payload stores redis.Reply or error
 type Payload struct {
 	Data redis.Reply
 	Err error
@@ -68,7 +71,60 @@ func (s *readState) finished() bool {
 func parse0(reader io.Reader, ch chan<- *Payload) {
 	defer func() {
 		if err := recover(); err != nil {
-
+			logger.Error(string(debug.Stack()))
 		}
 	}()
+	bufReader := bufio.NewReader(reader)
+	var state readState
+	var err error
+	var msg []byte
+	for {
+		// read line
+		var ioErr bool
+		msg, ioErr, err = readLine(bufReader, &state)
+		if err != nil {
+			if ioErr { // encounter io err, &state
+				ch <- &Payload{
+					Err: err,
+				}
+				close(ch)
+				return
+			}
+			// protocol err, reset read state
+			ch <- &Payload{
+				Err: err,
+			}
+			state = readState{}
+			continue
+		}
+
+		// parse line
+	}
+}
+
+func readLine(bufReader *bufio.Reader, state *readState) ([]byte, bool, error) {
+	var msg []byte
+	var err error
+	if state.bulkLen == 0 { // read normal line
+		msg, err = bufReader.ReadBytes('\n')
+		if err != nil {
+			return nil, true, err
+		}
+		if len(msg) == 0 || msg[len(msg)-2] != '\r' {
+			return nil, false, errors.New("protocol error: " + string(msg))
+		}
+	} else { // read bulk line (binary safe)
+		msg = make([]byte, state.bulkLen+2)
+		_, err = io.ReadFull(bufReader, msg)
+		if err != nil {
+			return nil, true, err
+		}
+		if len(msg) == 0 ||
+			msg[len(msg)-2] != '\r' ||
+			msg[len(msg)-1] != '\n' {
+			return nil, false, errors.New("protocol error: " + string(msg))
+		}
+		state.bulkLen = 0
+	}
+	return msg, false, nil
 }
