@@ -4,7 +4,7 @@ import (
 	"JZ_Redis/interface/tcp"
 	"context"
 	"fmt"
-	"godis/lib/logger"
+	"JZ_Redis/lib/logger"
 	"net"
 	"os"
 	"os/signal"
@@ -46,15 +46,15 @@ func ListenAndServerWithSignal(cfg *Config, handler tcp.Handler) error {
 
 // ListenAndServe binds port and handle requests, blocking until close
 func ListenAndServe(listener net.Listener, handler tcp.Handler, closeChan <-chan struct{}) {
-	// listen signal
+	// listen signal (监听关闭通知)
 	go func() {
-		<-closeChan
+		<-closeChan // 无中断信号时,此处阻塞
 		logger.Info("shutting down...")
 		_ = listener.Close() // listener.Accept() will return err immediately
 		_ = handler.Close() // close connection
 	}()
 
-	// listen port
+	// listen port (在异常退出后释放资源)
 	defer func() {
 		// close during unexpected error
 		_ = listener.Close()
@@ -67,7 +67,7 @@ func ListenAndServe(listener net.Listener, handler tcp.Handler, closeChan <-chan
 		if err != nil {
 			break
 		}
-		// handle
+		// handle -> 开启新的 goroutine 来处理连接
 		logger.Info("accept link")
 		waitDone.Add(1)
 		go func() {
