@@ -23,6 +23,7 @@ type Config struct {
 }
 
 // ListenAndServeWithSignal binds port and handle requests, blocking until receive stop signal
+// 监听中断信号并通过 closeChan 通知服务器关闭
 func ListenAndServerWithSignal(cfg *Config, handler tcp.Handler) error {
 	closeChan := make(chan struct{})
 	sigCh := make(chan os.Signal)
@@ -49,12 +50,15 @@ func ListenAndServe(listener net.Listener, handler tcp.Handler, closeChan <-chan
 	// listen signal (监听关闭通知)
 	go func() {
 		<-closeChan // 无中断信号时,此处阻塞
+		// 以下为中断信号来了之后的处理, 关闭listener和handler
 		logger.Info("shutting down...")
+		// 停止监听，listener.Accept()会立即返回 io.EOF
 		_ = listener.Close() // listener.Accept() will return err immediately
+		// 关闭应用层服务器
 		_ = handler.Close() // close connection
 	}()
 
-	// listen port (在异常退出后释放资源)
+	// listen port (在异常退出后释放资源, 即非中断信号引起的关闭)
 	defer func() {
 		// close during unexpected error
 		_ = listener.Close()
@@ -63,6 +67,7 @@ func ListenAndServe(listener net.Listener, handler tcp.Handler, closeChan <-chan
 	ctx := context.Background()
 	var waitDone sync.WaitGroup
 	for {
+		// 监听端口, 阻塞直到收到新连接或者出现错误
 		conn, err := listener.Accept()
 		if err != nil {
 			break
@@ -77,5 +82,5 @@ func ListenAndServe(listener net.Listener, handler tcp.Handler, closeChan <-chan
 			handler.Handle(ctx, conn)
 		}()
 	}
-	waitDone.Wait()
+	waitDone.Wait() // 所有handler都关闭才退出
 }
