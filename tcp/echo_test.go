@@ -13,7 +13,7 @@ import (
 func TestListenAndServe(t *testing.T) {
 	var err error
 	closeChan := make(chan struct{})
-	listener, err := net.Listen("tcp", ":0")
+	listener, err := net.Listen("tcp", ":0") // a port number is automatically chosen
 	if err != nil {
 		t.Error(err)
 		return
@@ -49,7 +49,9 @@ func TestListenAndServe(t *testing.T) {
 
 	for i := 0; i < 5; i++ {
 		// create idle connection -> 测试闲置的连接是不是都会被关闭
-		_, _ = net.Dial("tcp", addr)
+		conn2, _ := net.Dial("tcp", addr)
+		//fmt.Println(conn2.LocalAddr())
+		conn2.Write([]byte("why not \n"))
 	}
 	closeChan <- struct{}{}
 	time.Sleep(time.Second)

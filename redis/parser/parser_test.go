@@ -2,9 +2,9 @@ package parser
 
 import (
 	"JZ_Redis/interface/redis"
+	"JZ_Redis/lib/utils"
 	"JZ_Redis/redis/reply"
 	"bytes"
-	"JZ_Redis/lib/utils"
 
 	"io"
 	"testing"
