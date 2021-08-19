@@ -1,8 +1,8 @@
 package pubsub
 
 import (
-	"JZ_Redis/DataStruct/dict"
-	"JZ_Redis/DataStruct/lock"
+	"JZ_Redis/datastruct/dict"
+	"JZ_Redis/datastruct/lock"
 )
 
 // Hub stores all subscribe relations

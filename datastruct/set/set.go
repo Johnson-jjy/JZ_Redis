@@ -1,6 +1,6 @@
 package set
 
-import "JZ_Redis/DataStruct/dict"
+import "JZ_Redis/datastruct/dict"
 
 // Set is a set of elements based on hash table
 type Set struct {

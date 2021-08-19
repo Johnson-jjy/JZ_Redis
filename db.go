@@ -1,8 +1,8 @@
 package JZ_Redis
 
 import (
-	"JZ_Redis/DataStruct/dict"
-	"JZ_Redis/DataStruct/lock"
+	"JZ_Redis/datastruct/dict"
+	"JZ_Redis/datastruct/lock"
 	"JZ_Redis/pubsub"
 	"sync"
 )
