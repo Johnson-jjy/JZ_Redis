@@ -23,13 +23,13 @@ func Equals(a interface{}, b interface{}) bool {
 	sliceA, okA := a.([]byte)
 	sliceB, okB := b.([]byte)
 	if okA && okB {
-		return ByteEquals(sliceA, sliceB)
+		return BytesEquals(sliceA, sliceB)
 	}
 	return a == b // 这个函数的考究是什么？
 }
 
-// ByteEquals check whether the given bytes is equal
-func ByteEquals(a []byte, b []byte) bool {
+// BytesEquals check whether the given bytes is equal
+func BytesEquals(a []byte, b []byte) bool {
 	if (a == nil && b != nil) || (a != nil && b == nil) {
 		return false
 	}

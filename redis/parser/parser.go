@@ -49,6 +49,7 @@ func ParseBytes(data []byte) ([]redis.Reply, error) {
 }
 
 // ParseOne reads data from []byte and return the first payload
+// ParseOne 解析 []byte 并返回 redis.Reply
 func ParseOne(data []byte) (redis.Reply, error) {
 	ch := make(chan *Payload)
 	reader := bytes.NewReader(data)
@@ -85,6 +86,8 @@ func parse0(reader io.Reader, ch chan<- *Payload) {
 	for {
 		// read line
 		var ioErr bool
+		// RESP 是以行为单位的
+		// 因为行分为简单字符串和二进制安全的BulkString，我们需要封装一个 readLine 函数来兼容
 		msg, ioErr, err = readLine(bufReader, &state)
 		if err != nil {
 			if ioErr { // encounter io err, &state
@@ -103,6 +106,10 @@ func parse0(reader io.Reader, ch chan<- *Payload) {
 		}
 
 		// parse line
+		// 接下来我们对刚刚读取的行进行解析
+		// 我们简单的将 Reply 分为两类:
+		// 单行: StatusReply, IntReply, ErrorReply
+		// 多行: BulkReply, MultiBulkReply
 		if !state.readingMultiLine {
 			// receive new response
 			if msg[0] == '*' {
@@ -179,7 +186,7 @@ func parse0(reader io.Reader, ch chan<- *Payload) {
 func readLine(bufReader *bufio.Reader, state *readState) ([]byte, bool, error) {
 	var msg []byte
 	var err error
-	if state.bulkLen == 0 { // read normal line
+	if state.bulkLen == 0 { // read simple line
 		msg, err = bufReader.ReadBytes('\n')
 		if err != nil {
 			return nil, true, err
@@ -272,7 +279,7 @@ func parseSingleLineReply(msg []byte) (redis.Reply, error)  {
 
 // read the non-first lines of multi bulk reply or bulk reply
 func readBody(msg []byte, state *readState) error {
-	line := msg[0: len(msg)-2]
+	line := msg[0 : len(msg)-2]
 	var err error
 	if line[0] == '$' {
 		// bulk reply
@@ -283,9 +290,9 @@ func readBody(msg []byte, state *readState) error {
 		if state.bulkLen <= 0 { // null bulk in multi bulks
 			state.args = append(state.args, []byte{})
 			state.bulkLen = 0
-		} else {
-			state.args = append(state.args, line)
 		}
-		return nil
+	} else {
+		state.args = append(state.args, line)
 	}
+	return nil
 }

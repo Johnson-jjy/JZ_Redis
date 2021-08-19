@@ -2,6 +2,7 @@ package tcp
 
 import (
 	"bufio"
+	"fmt"
 	"math/rand"
 	"net"
 	"strconv"
@@ -38,14 +39,16 @@ func TestListenAndServe(t *testing.T) {
 			t.Error(err)
 			return
 		}
+		fmt.Printf("Client get it: %s\n", val)
 		if string(line) != val {
 			t.Error("get wrong response")
 			return
 		}
 	}
 	_ = conn.Close()
+
 	for i := 0; i < 5; i++ {
-		// create idle connection
+		// create idle connection -> 测试闲置的连接是不是都会被关闭
 		_, _ = net.Dial("tcp", addr)
 	}
 	closeChan <- struct{}{}
