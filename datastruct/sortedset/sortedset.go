@@ -77,7 +77,7 @@ func (sortedSet *SortedSet) GetRank(member string, desc bool) (rank int64) {
 }
 
 // ForEach visits each member which rank within [start, stop), sort by ascending order, rank start from 0
-func (sortedSet *SortedSet) Foreach(start int64, stop int64, desc bool, consumer func(element *Element) bool)  {
+func (sortedSet *SortedSet) ForEach(start int64, stop int64, desc bool, consumer func(element *Element) bool)  {
 	size := int64(sortedSet.Len()) // 这里的int64多余了，下同
 	if start < 0 || start >= size {
 		panic("illegal start " + strconv.FormatInt(start, 10))
@@ -118,7 +118,7 @@ func (sortedSet *SortedSet) Range(start int64, stop int64, desc bool) []*Element
 	sliceSize := int(stop - start)
 	slice := make([]*Element, sliceSize)
 	i := 0
-	sortedSet.Foreach(start, stop, desc, func(element *Element) bool {
+	sortedSet.ForEach(start, stop, desc, func(element *Element) bool {
 		slice[i] = element
 		i++
 		return true
@@ -130,7 +130,7 @@ func (sortedSet *SortedSet) Range(start int64, stop int64, desc bool) []*Element
 func (sortedSet *SortedSet) Count(min *ScoreBorder, max *ScoreBorder) int64 {
 	var i int64 = 0
 	// ascending order
-	sortedSet.Foreach(0, sortedSet.Len(), false, func(element *Element) bool {
+	sortedSet.ForEach(0, sortedSet.Len(), false, func(element *Element) bool {
 		gtMin := min.less(element.Score) // greater than min
 		if !gtMin {
 			// has not into range, continue foreach
