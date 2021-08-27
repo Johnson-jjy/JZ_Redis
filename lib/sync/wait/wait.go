@@ -28,7 +28,7 @@ func (w *Wait) Wait() {
 // WaitWithTimeout blocks until the WaitGroup counter is zero or timeout
 // return true if timeout
 func (w *Wait) WaitWithTimeout(timeout time.Duration) bool {
-	c := make(chan bool, 1)
+	c := make(chan bool, 1) // 传递正常关闭的channel
 	go func() {
 		defer close(c)
 		w.wg.Wait()
