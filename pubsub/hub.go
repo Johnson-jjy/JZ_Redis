@@ -15,7 +15,7 @@ type Hub struct {
 
 // MakeHub creates new hub
 func MakeHub() *Hub {
-	return &Hun{
+	return &Hub{
 		subs: dict.MakeConcurrent(4),
 		subsLocker: lock.Make(16),
 	}
